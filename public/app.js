@@ -1,10 +1,14 @@
 /********************************************************
  * app.js
  * 
- * Highlights of Changes:
- * 1) handleStartRace(): If the race is merely paused, we resume immediately without the 120s countdown prompt.
- * 2) handleEndRace(): Always confirm and send "endRace", even if the race might appear "stuck".
- *    - We also ensure we see the prompt each time you click "End Race."
+ * Changes:
+ * - We removed local setInterval for the countdown.
+ * - We rely on the server to handle the countdown; 
+ *   whenever raceData updates, we check if isCountingDown 
+ *   is true and display the countdown in the timers.
+ * - The concurrency bug is fixed by storing all race data 
+ *   in memory on the server side (no changes needed 
+ *   here except removing the old local countdown).
  ********************************************************/
 
 let socket;
@@ -138,7 +142,7 @@ function checkIfLoggedIn() {
  *******************************/
 function initUI() {
   document.getElementById('logoutBtn').addEventListener('click', doLogout);
-  // If we want to hide "switchRaceBtn," do so here:
+  // Hide "switchRaceBtn" if desired
   document.getElementById('switchRaceBtn').style.display = 'none';
 
   document.getElementById('startRaceBtn').addEventListener('click', handleStartRace);
@@ -190,8 +194,8 @@ function handleLoadRace() {
 }
 
 /**
- * If the race is brand-new, we optionally do the 120s countdown.
- * If the race is paused, we simply resume it with no countdown prompt.
+ * If the race is brand-new, we optionally do a 120s countdown.
+ * If the race is paused, we resume immediately (no countdown).
  */
 function handleStartRace() {
   if (userRole !== 'admin') {
@@ -207,30 +211,13 @@ function handleStartRace() {
   if (rObj.isPaused) {
     // Just resume
     if (!confirm("Resume the paused race now?")) return;
-    socket.emit('startRace', currentGroup);
+    socket.emit('startRace', { group: currentGroup, useCountdown: false });
     return;
   }
 
-  // If we get here, it's a fresh start
+  // If we get here, it's presumably brand-new or not paused
   const useCountdown = confirm("Start with a 120s countdown?");
-  if (!useCountdown) {
-    // immediate
-    socket.emit('startRace', currentGroup);
-  } else {
-    if (!confirm("120s countdown will begin. OK?")) return;
-    let cdown = 120;
-    showConfirmation(`Countdown: ${cdown}s`);
-    const intId = setInterval(() => {
-      cdown--;
-      if (cdown <= 0) {
-        clearInterval(intId);
-        showConfirmation("Countdown done. Starting race...");
-        socket.emit('startRace', currentGroup);
-      } else {
-        showConfirmation(`Countdown: ${cdown}s`);
-      }
-    }, 1000);
-  }
+  socket.emit('startRace', { group: currentGroup, useCountdown });
 }
 
 function handlePauseRace() {
@@ -248,7 +235,6 @@ function handlePauseRace() {
 
 /**
  * Always prompt to confirm end, then do "endRace".
- * We also do an incomplete check. If incomplete => user can choose to continue.
  */
 function handleEndRace() {
   if (userRole !== 'admin') {
@@ -281,7 +267,7 @@ function getIncompleteStudents(rObj) {
   groupCfg.classes.forEach(cls => {
     cls.students.forEach(stu => {
       const arr = rObj.recordedTimes[stu] || [];
-      if(!arr.includes('Injured') && arr.length< rObj.laps){
+      if(!arr.includes('Injured') && arr.length < rObj.laps){
         out.push(stu);
       }
     });
@@ -336,14 +322,16 @@ function updateUI() {
   let isRunning = false, isPaused = false;
   if (cRId) {
     const rO = raceData[currentGroup].races[cRId];
-    isRunning = rO.isRunning;
-    isPaused = rO.isPaused;
+    if (rO) {
+      isRunning = rO.isRunning;
+      isPaused = rO.isPaused;
+    }
   }
   const isAdmin = (userRole === 'admin');
 
   // Start Race => if paused => "Continue" label
   const stBtn= document.getElementById('startRaceBtn');
-  stBtn.textContent = isPaused? "Continue Race" : "Start Race";
+  stBtn.textContent = isPaused ? "Continue Race" : "Start Race";
   stBtn.disabled = (!isAdmin || !cRId || (isRunning && !isPaused));
 
   // Pause
@@ -459,7 +447,8 @@ function renderClassesUI(){
       // plus
       const plusBtn= document.createElement('button');
       plusBtn.textContent='+';
-      plusBtn.style.width='30px'; plusBtn.style.height='30px';
+      plusBtn.style.width='30px'; 
+      plusBtn.style.height='30px';
       if(lapsArr.includes('Injured')|| lapsArr.length>= rO.laps){
         plusBtn.disabled=true;
       }
@@ -469,7 +458,8 @@ function renderClassesUI(){
       // minus
       const minusBtn= document.createElement('button');
       minusBtn.textContent='-';
-      minusBtn.style.width='30px'; minusBtn.style.height='30px';
+      minusBtn.style.width='30px'; 
+      minusBtn.style.height='30px';
       if(!lapsArr.length|| lapsArr.includes('Injured')){
         minusBtn.disabled=true;
       }
@@ -510,16 +500,11 @@ function handleMinusLap(stu){
     showConfirmation("No laps or student is injured");
     return;
   }
-  // we do a quick confirm
+  // confirm
   if(!confirm(`Remove last lap from ${stu}?`)) return;
-  // There's no default "removeLap" in this snippet, but you can add an event or do "editTime" => etc.
-  // For now, let's do a quick approach => edit last lap to 0? Or we can implement a new server event "removeLap".
-  const lastIndex= arr.length-1;
-  arr.splice(lastIndex,1);
-  // we could do: reassign the array in memory, then emit a "raceDataUpdated".
-  // But that requires a new server event. 
-  showConfirmation("Lap removed locally, but you need a server event to persist it!");
-  updateUI();
+  // We'll call the server "removeLap" event
+  socket.emit('removeLap', { group: currentGroup, studentName: stu });
+  // The server will broadcast raceDataUpdated, so no local mutation needed
 }
 
 /***************************************
@@ -531,6 +516,7 @@ function updateTimers(){
   updateGroupTimer('junior', document.getElementById('timeDisplayJunior'));
   updateGroupTimer('senior', document.getElementById('timeDisplaySenior'));
 }
+
 function updateGroupTimer(g, el){
   if(!raceData[g]){
     el.textContent= `${g} Timer: 00:00:00.000`;
@@ -542,6 +528,12 @@ function updateGroupTimer(g, el){
     return;
   }
   const rO= raceData[g].races[cR];
+  // If there's a server-driven countdown in progress, show that
+  if (rO.isCountingDown && rO.countdownRemaining > 0) {
+    el.textContent= `${g} Countdown: ${rO.countdownRemaining}s`;
+    return;
+  }
+  // else show normal timer
   if(rO.isRunning && rO.startTime){
     const elapsed= Date.now()- rO.startTime;
     el.textContent= g+" Timer: "+ formatMs(elapsed);
@@ -551,6 +543,7 @@ function updateGroupTimer(g, el){
     el.textContent= g+" Timer: 00:00:00.000";
   }
 }
+
 function formatMs(ms){
   const hh= Math.floor(ms/3600000); ms%=3600000;
   const mm= Math.floor(ms/60000);   ms%=60000;
@@ -712,9 +705,6 @@ function findGroupForRace(rId){
   }
   return null;
 }
-function toggleManageSection(){
-  // not used, we replaced it
-}
 
 function renderManageTable(){
   const tBody= document.querySelector('#registrationsTable tbody');
@@ -799,8 +789,6 @@ function doReassign(grp, rId, oldStu, lastVal){
   });
 }
 function doEditTime(grp, rId, stu, oldVal){
-  // In a future version, you might let the user pick WHICH lap to edit
-  // For now, we only edit the last lap
   const newValStr= prompt(`New time (old: ${oldVal})`);
   if(!newValStr|| isNaN(parseFloat(newValStr))) return;
   const newVal= parseFloat(newValStr);
@@ -825,11 +813,4 @@ function hasAnyRecordedTimes(){
     }
   }
   return false;
-}
-function getRaceObj(){
-  const grp= raceData[currentGroup];
-  if(!grp) return null;
-  const cR= grp.currentRaceId;
-  if(!cR) return null;
-  return grp.races[cR];
 }
