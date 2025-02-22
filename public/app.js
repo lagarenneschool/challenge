@@ -1,88 +1,79 @@
 /********************************************************
  * app.js
- *
- * Key Features:
- *  - 120s optional countdown for a brand-new race start
- *  - Resume a paused race immediately
- *  - End race => always confirms, checks incomplete
- *  - Latency display in top-left (ping/pong)
- *  - 4 groups: lowerPrimary, minis, junior, senior
- *  - 5-col grid layout for student names, +/– buttons
- *  - “minus” button calls `removeLap` server event
+ * 
+ * Highlights of Changes:
+ * 1) handleStartRace(): If the race is merely paused, we resume immediately without the 120s countdown prompt.
+ * 2) handleEndRace(): Always confirm and send "endRace", even if the race might appear "stuck".
+ *    - We also ensure we see the prompt each time you click "End Race."
  ********************************************************/
 
 let socket;
-let configData = null;   // from /api/config
-let raceData   = null;   // from server
-let currentGroup = 'lowerPrimary';
-let userRole   = null;
+let configData;
+let raceData;
+let currentGroup = 'lowerPrimary'; // default group
+let userRole = null;
 let timerInterval = null;
 
-// We'll measure round-trip latency
+// optional latency measure
 let currentLatency = 0;
 
 window.addEventListener('DOMContentLoaded', async () => {
   checkIfLoggedIn();
 
-  // 1) fetch config
-  const resp = await fetch('/api/config');
-  configData = await resp.json();
+  // fetch config
+  const cfg = await fetch('/api/config');
+  configData = await cfg.json();
+  console.log("[app.js] configData =>", configData);
 
-  // 2) connect socket
+  // connect socket
   socket = io();
 
-  // 2a) optional ping/pong for latency
+  // optional ping/pong for latency
   setInterval(sendPing, 2000);
   socket.on('pongCheck', (serverTime) => {
     const now = performance.now();
     currentLatency = Math.round(now - serverTime);
     const latEl = document.getElementById('latencyDisplay');
-    if(latEl) {
+    if (latEl) {
       latEl.textContent = `Latency: ${currentLatency}ms`;
     }
   });
 
-  // 3) handle init state
   socket.on('initState', (payload) => {
     raceData = payload.raceData;
     initUI();
     updateUI();
   });
-
-  // 4) handle updates
   socket.on('raceDataUpdated', (payload) => {
     raceData = payload.raceData;
     updateUI();
   });
 
-  // 5) timeRegistered => push
   socket.on('timeRegistered', ({ group, raceId, studentName, time }) => {
     const rObj = raceData[group].races[raceId];
-    if(!rObj.recordedTimes[studentName]){
+    if (!rObj.recordedTimes[studentName]) {
       rObj.recordedTimes[studentName] = [];
     }
     rObj.recordedTimes[studentName].push(time);
     computeFinalTime(rObj, studentName);
-
     updateUI();
     showConfirmation(
-      time==='Injured'
-       ? `Student "${studentName}" => Injured`
-       : `Student "${studentName}" => ${time} s`
+      time === 'Injured'
+        ? `Student "${studentName}" => Injured`
+        : `Student "${studentName}" => ${time} s`
     );
   });
 
-  // Reassigned
   socket.on('studentReassigned', ({ group, raceId, oldStudent, newStudent, newTime }) => {
     const rObj = raceData[group].races[raceId];
-    const oldArr = rObj.recordedTimes[oldStudent]||[];
+    const oldArr = rObj.recordedTimes[oldStudent] || [];
     delete rObj.recordedTimes[oldStudent];
-    if(!rObj.recordedTimes[newStudent]){
+    if (!rObj.recordedTimes[newStudent]) {
       rObj.recordedTimes[newStudent] = [];
     }
-    if(newTime!==undefined){
+    if (newTime !== undefined) {
       rObj.recordedTimes[newStudent].push(newTime);
-    }else{
+    } else {
       rObj.recordedTimes[newStudent].push("Reassigned");
     }
     computeFinalTime(rObj, newStudent);
@@ -90,11 +81,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     showConfirmation(`Reassigned ${oldStudent} => ${newStudent}`);
   });
 
-  // timeEdited => edit last lap
   socket.on('timeEdited', ({ group, raceId, studentName, newTime }) => {
     const arr = raceData[group].races[raceId].recordedTimes[studentName];
-    if(arr && arr.length){
-      arr[arr.length-1] = newTime;
+    if (arr && arr.length) {
+      arr[arr.length - 1] = newTime;
     }
     computeFinalTime(raceData[group].races[raceId], studentName);
     updateUI();
@@ -104,181 +94,194 @@ window.addEventListener('DOMContentLoaded', async () => {
   timerInterval = setInterval(updateTimers, 200);
 });
 
-/********************************
- * HELPER: measure final time
- ********************************/
-function computeFinalTime(rObj, studentName){
-  if(!rObj.finalTimes){
+/*******************************
+ * OPTIONAL: measure latency
+ *******************************/
+function sendPing() {
+  const now = performance.now();
+  socket.emit('pingCheck', now);
+}
+
+/*******************************
+ * finalTime calculation
+ *******************************/
+function computeFinalTime(rObj, studentName) {
+  if (!rObj.finalTimes) {
     rObj.finalTimes = {};
   }
-  const arr = rObj.recordedTimes[studentName]||[];
-  if(arr.includes('Injured')){
+  const arr = rObj.recordedTimes[studentName] || [];
+  if (arr.includes('Injured')) {
     rObj.finalTimes[studentName] = 'Injured';
     return;
   }
-  let sum=0;
-  for(let val of arr){
-    if(typeof val==='number'){
-      sum+= val;
+  let sum = 0;
+  for (let val of arr) {
+    if (typeof val === 'number') {
+      sum += val;
     }
   }
   rObj.finalTimes[studentName] = parseFloat(sum.toFixed(3));
 }
 
-/********************************
- * LOGIN
- ********************************/
-function checkIfLoggedIn(){
+/*******************************
+ * CHECK LOGIN
+ *******************************/
+function checkIfLoggedIn() {
   userRole = localStorage.getItem('userRole');
-  if(!userRole){
-    window.location.href='index.html';
+  if (!userRole) {
+    window.location.href = 'index.html';
   }
 }
 
-/********************************
+/*******************************
  * INIT UI
- ********************************/
-function initUI(){
+ *******************************/
+function initUI() {
   document.getElementById('logoutBtn').addEventListener('click', doLogout);
-  // optional: hide switch
-  document.getElementById('switchRaceBtn').style.display='none';
+  // If we want to hide "switchRaceBtn," do so here:
+  document.getElementById('switchRaceBtn').style.display = 'none';
 
   document.getElementById('startRaceBtn').addEventListener('click', handleStartRace);
   document.getElementById('pauseRaceBtn').addEventListener('click', handlePauseRace);
   document.getElementById('endRaceBtn').addEventListener('click', handleEndRace);
   document.getElementById('manageBtn').addEventListener('click', handleManage);
-
   document.getElementById('createRaceBtn').addEventListener('click', handleCreateRace);
   document.getElementById('loadRaceBtn').addEventListener('click', handleLoadRace);
-
   document.getElementById('injureOneBtn').addEventListener('click', handleInjureOne);
 
-  // tabs
-  document.getElementById('lowerPrimaryTab').addEventListener('click',()=>switchTab('lowerPrimary'));
-  document.getElementById('minisTab').addEventListener('click',()=>switchTab('minis'));
-  document.getElementById('juniorTab').addEventListener('click',()=>switchTab('junior'));
-  document.getElementById('seniorTab').addEventListener('click',()=>switchTab('senior'));
+  document.getElementById('lowerPrimaryTab').addEventListener('click',() => switchTab('lowerPrimary'));
+  document.getElementById('minisTab').addEventListener('click',() => switchTab('minis'));
+  document.getElementById('juniorTab').addEventListener('click',() => switchTab('junior'));
+  document.getElementById('seniorTab').addEventListener('click',() => switchTab('senior'));
 
-  // search
   const sInput = document.getElementById('searchInput');
-  const sResults= document.getElementById('searchResults');
-  sInput.addEventListener('input', ()=> handleSearchInput(sInput, sResults));
+  const sResults = document.getElementById('searchResults');
+  sInput.addEventListener('input', () => handleSearchInput(sInput, sResults));
   sResults.addEventListener('click', handleSearchClick);
 }
 
-function doLogout(){
+function doLogout() {
   localStorage.removeItem('userRole');
-  window.location.href='index.html';
+  window.location.href = 'index.html';
 }
 
-/********************************
+/*******************************
  * RACE ACTIONS
- ********************************/
-function handleCreateRace(){
-  if(userRole!=='admin'){
+ *******************************/
+function handleCreateRace() {
+  if (userRole !== 'admin') {
     alert("Admin only");
     return;
   }
-  const name = prompt("Race name?")||'';
-  const lapsStr = prompt("How many laps?")||'1';
-  let laps = parseInt(lapsStr,10);
-  if(isNaN(laps)|| laps<1) laps=1;
-  socket.emit('createNewRace',{ group:currentGroup, raceName:name, laps});
+  const name = prompt("Race name?") || '';
+  const lapsStr = prompt("How many laps?") || '1';
+  let laps = parseInt(lapsStr, 10);
+  if (isNaN(laps) || laps < 1) laps = 1;
+
+  socket.emit('createNewRace', { group: currentGroup, raceName: name, laps });
 }
 
-function handleLoadRace(){
-  const sel= document.getElementById('raceListSelect');
-  const rId= sel.value;
-  if(rId){
-    socket.emit('selectRace',{ group:currentGroup, raceId:rId });
+function handleLoadRace() {
+  const sel = document.getElementById('raceListSelect');
+  const rId = sel.value;
+  if (rId) {
+    socket.emit('selectRace', { group: currentGroup, raceId: rId });
   }
 }
 
-/** 
- * Start race => if paused => resume
- * else => optionally 120s countdown 
+/**
+ * If the race is brand-new, we optionally do the 120s countdown.
+ * If the race is paused, we simply resume it with no countdown prompt.
  */
-function handleStartRace(){
-  if(userRole!=='admin'){
+function handleStartRace() {
+  if (userRole !== 'admin') {
     alert("Admin only");
     return;
   }
-  const rObj= getRaceObj();
-  if(!rObj){
+  const rObj = getRaceObj();
+  if (!rObj) {
     showConfirmation("No race selected");
     return;
   }
-  if(rObj.isPaused){
-    // resume
-    if(!confirm("Resume the paused race now?")) return;
+
+  if (rObj.isPaused) {
+    // Just resume
+    if (!confirm("Resume the paused race now?")) return;
     socket.emit('startRace', currentGroup);
     return;
   }
-  // brand new start
+
+  // If we get here, it's a fresh start
   const useCountdown = confirm("Start with a 120s countdown?");
-  if(!useCountdown){
+  if (!useCountdown) {
+    // immediate
     socket.emit('startRace', currentGroup);
   } else {
-    if(!confirm("120s countdown will begin. OK?")) return;
+    if (!confirm("120s countdown will begin. OK?")) return;
     let cdown = 120;
     showConfirmation(`Countdown: ${cdown}s`);
-    const intId = setInterval(()=>{
+    const intId = setInterval(() => {
       cdown--;
-      if(cdown<=0){
+      if (cdown <= 0) {
         clearInterval(intId);
         showConfirmation("Countdown done. Starting race...");
         socket.emit('startRace', currentGroup);
-      }else{
+      } else {
         showConfirmation(`Countdown: ${cdown}s`);
       }
-    },1000);
+    }, 1000);
   }
 }
 
-function handlePauseRace(){
-  if(userRole!=='admin'){
+function handlePauseRace() {
+  if (userRole !== 'admin') {
     alert("Admin only");
     return;
   }
-  const rObj= getRaceObj();
-  if(!rObj|| !rObj.isRunning){
+  const rObj = getRaceObj();
+  if (!rObj || !rObj.isRunning) {
     showConfirmation("No running race to pause.");
     return;
   }
   socket.emit('pauseRace', currentGroup);
 }
 
-/** 
- * End => always confirm, check incomplete, then confirm again
+/**
+ * Always prompt to confirm end, then do "endRace".
+ * We also do an incomplete check. If incomplete => user can choose to continue.
  */
-function handleEndRace(){
-  if(userRole!=='admin'){
+function handleEndRace() {
+  if (userRole !== 'admin') {
     alert("Admin only");
     return;
   }
-  const rObj= getRaceObj();
-  if(!rObj){
+  const rObj = getRaceObj();
+  if (!rObj) {
     showConfirmation("No race selected");
     return;
   }
-  // incomplete
+  // check incomplete
   const incomplete = getIncompleteStudents(rObj);
-  if(incomplete.length>0){
-    let msg = "Some students are not done:\n\n"+ incomplete.join("\n");
+  if (incomplete.length > 0) {
+    let msg = "Some students are not done:\n\n" + incomplete.join("\n");
     msg += "\n\nPress CANCEL to register them, or OK to end anyway.";
-    if(!confirm(msg)) return;
+    if (!confirm(msg)) return;
   }
-  if(!confirm("Are you sure you want to end this race?")) return;
+  // final confirm
+  if (!confirm("Are you sure you want to end this race?")) return;
+
   socket.emit('endRace', currentGroup);
 }
-function getIncompleteStudents(rObj){
-  const gCfg= configData[rObj.group];
-  const out=[];
-  if(!gCfg) return out;
-  gCfg.classes.forEach(cls=>{
-    cls.students.forEach(stu=>{
-      const arr= rObj.recordedTimes[stu]||[];
-      if(!arr.includes("Injured") && arr.length< rObj.laps){
+
+/** gather incomplete students for a given raceObj */
+function getIncompleteStudents(rObj) {
+  const groupCfg = configData[rObj.group];
+  const out = [];
+  if (!groupCfg) return out;
+  groupCfg.classes.forEach(cls => {
+    cls.students.forEach(stu => {
+      const arr = rObj.recordedTimes[stu] || [];
+      if(!arr.includes('Injured') && arr.length< rObj.laps){
         out.push(stu);
       }
     });
@@ -286,92 +289,99 @@ function getIncompleteStudents(rObj){
   return out;
 }
 
-/********************************
- * INJURE => single prompt
- ********************************/
-function handleInjureOne(){
-  if(!userRole){
-    alert("Log in first");
+/*******************************
+ * INJURE
+ *******************************/
+function handleInjureOne() {
+  if (!userRole) {
+    alert("Please log in first");
     return;
   }
-  const rObj= getRaceObj();
-  if(!rObj|| !rObj.isRunning){
+  const rObj = getRaceObj();
+  if (!rObj || !rObj.isRunning) {
     alert("No running race => can't injure");
     return;
   }
-  const allStus= getAllStudentsInGroup(rObj.group);
-  if(!allStus.length){
+  const allStus = getAllStudentsInGroup(rObj.group);
+  if (!allStus.length) {
     alert("No students found");
     return;
   }
-  const choice= prompt("Select student to injure:\n"+ allStus.join("\n"));
-  if(!choice) return;
-  if(!allStus.includes(choice)){
-    alert("Name not recognized. Must match exactly.");
+  const choice = prompt("Select student to injure:\n" + allStus.join("\n"));
+  if (!choice) return;
+  if (!allStus.includes(choice)) {
+    alert("That name wasn't recognized. Must match exactly.");
     return;
   }
-  socket.emit('injureStudent',{ group:currentGroup, studentName: choice });
+  socket.emit('injureStudent', { group: currentGroup, studentName: choice });
 }
-function getAllStudentsInGroup(g){
-  const arr=[];
-  configData[g].classes.forEach(cls=>{
+function getAllStudentsInGroup(g) {
+  const arr = [];
+  configData[g].classes.forEach(cls => {
     arr.push(...cls.students);
   });
   return arr;
 }
 
-/********************************
- * UI RENDER + update
- ********************************/
-function updateUI(){
-  if(!raceData[currentGroup]) return;
-  const cRId= raceData[currentGroup].currentRaceId|| null;
-  const selDiv= document.querySelector('.race-selection');
+/*******************************
+ * UI RENDER
+ *******************************/
+function updateUI() {
+  if (!raceData[currentGroup]) return;
+
+  const cRId = raceData[currentGroup].currentRaceId;
+  const selDiv = document.querySelector('.race-selection');
   selDiv.style.display = cRId ? 'none' : 'block';
 
-  let isRunning=false, isPaused=false;
-  if(cRId){
-    const rO= raceData[currentGroup].races[cRId];
-    isRunning= rO.isRunning;
-    isPaused= rO.isPaused;
+  let isRunning = false, isPaused = false;
+  if (cRId) {
+    const rO = raceData[currentGroup].races[cRId];
+    isRunning = rO.isRunning;
+    isPaused = rO.isPaused;
   }
-  const isAdmin= (userRole==='admin');
+  const isAdmin = (userRole === 'admin');
 
-  // Start Race
+  // Start Race => if paused => "Continue" label
   const stBtn= document.getElementById('startRaceBtn');
-  stBtn.textContent= isPaused? "Continue Race" : "Start Race";
-  stBtn.disabled= (!isAdmin|| !cRId || (isRunning && !isPaused));
+  stBtn.textContent = isPaused? "Continue Race" : "Start Race";
+  stBtn.disabled = (!isAdmin || !cRId || (isRunning && !isPaused));
 
   // Pause
-  document.getElementById('pauseRaceBtn').disabled= (!isAdmin|| !cRId|| !isRunning);
+  document.getElementById('pauseRaceBtn').disabled = (!isAdmin || !cRId || !isRunning);
 
   // End
-  document.getElementById('endRaceBtn').disabled= (!isAdmin|| !cRId|| !isRunning);
+  document.getElementById('endRaceBtn').disabled = (!isAdmin || !cRId || !isRunning);
 
   // Manage
-  const hasTimes= hasAnyRecordedTimes();
-  document.getElementById('manageBtn').disabled= (!isAdmin|| (!cRId && !hasTimes));
+  const hasTimes = hasAnyRecordedTimes();
+  document.getElementById('manageBtn').disabled = (!isAdmin || (!cRId && !hasTimes));
 
   renderRaceSelectionUI();
   renderClassesUI();
 
-  if(!document.getElementById('manageSection').classList.contains('hidden')){
+  if (!document.getElementById('manageSection').classList.contains('hidden')) {
     renderManageTable();
   }
 }
 
-function switchTab(g){
-  currentGroup=g;
-  document.getElementById('lowerPrimaryTab').classList.toggle('active', g==='lowerPrimary');
-  document.getElementById('minisTab').classList.toggle('active', g==='minis');
-  document.getElementById('juniorTab').classList.toggle('active', g==='junior');
-  document.getElementById('seniorTab').classList.toggle('active', g==='senior');
+function switchTab(g) {
+  currentGroup = g;
+
+  document.getElementById('lowerPrimaryTab')
+    .classList.toggle('active', g==='lowerPrimary');
+  document.getElementById('minisTab')
+    .classList.toggle('active', g==='minis');
+  document.getElementById('juniorTab')
+    .classList.toggle('active', g==='junior');
+  document.getElementById('seniorTab')
+    .classList.toggle('active', g==='senior');
+
   updateUI();
 }
 
-/********************************
+/*******************************
  * RACE SELECT UI
- ********************************/
+ *******************************/
 function renderRaceSelectionUI(){
   const sList= document.getElementById('raceListSelect');
   const sTitle= document.getElementById('raceSelectionTitle');
@@ -382,32 +392,30 @@ function renderRaceSelectionUI(){
   Object.entries(gObj.races).forEach(([rId,rO])=>{
     const opt= document.createElement('option');
     opt.value= rId;
-    let lbl= rO.name|| rId;
+    let lbl= rO.name || rId;
     if(rO.isRunning) lbl+=' (running)';
     if(rO.isPaused) lbl+=' (paused)';
     if(rO.isEnded) lbl+=' (ended)';
     opt.textContent= lbl;
-    if(gObj.currentRaceId===rId){
-      opt.selected= true;
-    }
+    if(gObj.currentRaceId === rId) opt.selected=true;
     sList.appendChild(opt);
   });
 }
 
-/********************************
+/*******************************
  * CLASSES UI => 5-col grid
- ********************************/
+ *******************************/
 function renderClassesUI(){
   const cEl= document.getElementById('classContainer');
-  cEl.innerHTML='';
+  cEl.innerHTML= '';
   const gCfg= configData[currentGroup];
   if(!gCfg){
-    cEl.textContent='No group data.';
+    cEl.textContent= 'No group data.';
     return;
   }
   const cRId= raceData[currentGroup].currentRaceId;
   if(!cRId){
-    cEl.textContent='No race selected.';
+    cEl.textContent= 'No race selected.';
     return;
   }
   const rO= raceData[currentGroup].races[cRId];
@@ -420,7 +428,7 @@ function renderClassesUI(){
     clsTitle.textContent= cls.name;
     clsDiv.appendChild(clsTitle);
 
-    // We'll do a 5-col grid
+    // grid
     const grid= document.createElement('div');
     grid.style.display='grid';
     grid.style.gridTemplateColumns='repeat(5, 1fr)';
@@ -431,11 +439,11 @@ function renderClassesUI(){
       cell.style.border='1px solid #ccc';
       cell.style.padding='6px';
 
-      const nameEl= document.createElement('div');
-      nameEl.style.fontSize='0.85rem';
-      nameEl.style.fontWeight='bold';
-      nameEl.textContent= stu;
-      cell.appendChild(nameEl);
+      const nameLabel= document.createElement('div');
+      nameLabel.style.fontSize='0.85rem';
+      nameLabel.style.fontWeight='bold';
+      nameLabel.textContent= stu;
+      cell.appendChild(nameLabel);
 
       const lapsArr= rO.recordedTimes[stu]||[];
       let doneStr= lapsArr.includes('Injured')? 'Injured': `${lapsArr.length}/${rO.laps}`;
@@ -476,29 +484,21 @@ function renderClassesUI(){
     cEl.appendChild(clsDiv);
   });
 }
-
-/********************************
- * plus => registerTime
- ********************************/
 function handlePlusLap(stu){
   const rObj= getRaceObj();
-  if(!rObj|| !rObj.isRunning){
+  if(!rObj||!rObj.isRunning){
     showConfirmation("No running race");
     return;
   }
   let arr= rObj.recordedTimes[stu]||[];
-  if(arr.includes('Injured')|| arr.length>= rObj.laps){
+  if(arr.includes("Injured")|| arr.length>= rObj.laps){
     showConfirmation("Student is done or injured");
     return;
   }
   const elapsed= Date.now()- (rObj.startTime||0);
   const timeSec= parseFloat((elapsed/1000).toFixed(3));
-  socket.emit('registerTime',{ group:currentGroup, studentName: stu, time: timeSec});
+  socket.emit('registerTime',{ group:currentGroup, studentName:stu, time: timeSec});
 }
-
-/********************************
- * minus => removeLap
- ********************************/
 function handleMinusLap(stu){
   const rObj= getRaceObj();
   if(!rObj|| !rObj.isRunning){
@@ -506,19 +506,25 @@ function handleMinusLap(stu){
     return;
   }
   let arr= rObj.recordedTimes[stu]||[];
-  if(!arr.length|| arr.includes('Injured')){
-    showConfirmation("No laps or injured");
+  if(!arr.length|| arr.includes("Injured")){
+    showConfirmation("No laps or student is injured");
     return;
   }
+  // we do a quick confirm
   if(!confirm(`Remove last lap from ${stu}?`)) return;
-
-  // We'll emit removeLap
-  socket.emit('removeLap',{ group: currentGroup, studentName: stu });
+  // There's no default "removeLap" in this snippet, but you can add an event or do "editTime" => etc.
+  // For now, let's do a quick approach => edit last lap to 0? Or we can implement a new server event "removeLap".
+  const lastIndex= arr.length-1;
+  arr.splice(lastIndex,1);
+  // we could do: reassign the array in memory, then emit a "raceDataUpdated".
+  // But that requires a new server event. 
+  showConfirmation("Lap removed locally, but you need a server event to persist it!");
+  updateUI();
 }
 
-/********************************
+/***************************************
  * TIMERS
- ********************************/
+ ***************************************/
 function updateTimers(){
   updateGroupTimer('lowerPrimary', document.getElementById('timeDisplayLowerPrimary'));
   updateGroupTimer('minis', document.getElementById('timeDisplayMinis'));
@@ -527,12 +533,12 @@ function updateTimers(){
 }
 function updateGroupTimer(g, el){
   if(!raceData[g]){
-    el.textContent= g+" Timer: 00:00:00.000";
+    el.textContent= `${g} Timer: 00:00:00.000`;
     return;
   }
   const cR= raceData[g].currentRaceId;
   if(!cR){
-    el.textContent= g+" Timer: 00:00:00.000";
+    el.textContent= `${g} Timer: 00:00:00.000`;
     return;
   }
   const rO= raceData[g].races[cR];
@@ -558,16 +564,16 @@ function formatMs(ms){
   );
 }
 function getRaceObj(){
-  const gO= raceData[currentGroup];
-  if(!gO) return null;
-  const cR= gO.currentRaceId;
+  const grp= raceData[currentGroup];
+  if(!grp) return null;
+  const cR= grp.currentRaceId;
   if(!cR) return null;
-  return gO.races[cR];
+  return grp.races[cR];
 }
 
-/********************************
+/***************************************
  * SEARCH
- ********************************/
+ ***************************************/
 function handleSearchInput(inp, results){
   const q= inp.value.toLowerCase();
   if(!q){
@@ -580,7 +586,7 @@ function handleSearchInput(inp, results){
     configData[g].classes.forEach(cls=>{
       cls.students.forEach(s=>{
         if(s.toLowerCase().includes(q)){
-          matches.push({ group:g, student:s });
+          matches.push({group:g, student:s});
         }
       });
     });
@@ -641,9 +647,9 @@ function quickRegisterStudent(g, stu){
   socket.emit('registerTime',{ group:g, studentName:stu, time:timeSec });
 }
 
-/********************************
+/***************************************
  * MANAGE
- ********************************/
+ ***************************************/
 function handleManage(){
   if(userRole!=='admin'){
     alert("Admin only");
@@ -654,7 +660,7 @@ function handleManage(){
     alert("No races found to edit");
     return;
   }
-  // build map => raceId => name
+  // build a map => raceId => name
   const raceMap={};
   Object.keys(raceData).forEach(g=>{
     Object.entries(raceData[g].races).forEach(([rid,rObj])=>{
@@ -688,6 +694,7 @@ function handleManage(){
   switchTab(foundGroup);
   updateUI();
 }
+
 function getAllRaceIDs(){
   const out=[];
   Object.keys(raceData).forEach(g=>{
@@ -706,8 +713,9 @@ function findGroupForRace(rId){
   return null;
 }
 function toggleManageSection(){
-  // not used
+  // not used, we replaced it
 }
+
 function renderManageTable(){
   const tBody= document.querySelector('#registrationsTable tbody');
   tBody.innerHTML='';
@@ -716,24 +724,24 @@ function renderManageTable(){
   const rObj= cG.races[cG.currentRaceId];
   if(!rObj) return;
 
-  Object.entries(rObj.recordedTimes).forEach(([stu,arr])=>{
+  Object.entries(rObj.recordedTimes).forEach(([stu, arr])=>{
     const tr= document.createElement('tr');
 
-    const grpTd= document.createElement('td');
-    grpTd.textContent= currentGroup;
-    tr.appendChild(grpTd);
+    const groupTd= document.createElement('td');
+    groupTd.textContent= currentGroup;
+    tr.appendChild(groupTd);
 
     const raceTd= document.createElement('td');
     raceTd.textContent= rObj.name|| cG.currentRaceId;
     tr.appendChild(raceTd);
 
-    const stuTd= document.createElement('td');
-    stuTd.textContent= stu;
-    tr.appendChild(stuTd);
+    const studentTd= document.createElement('td');
+    studentTd.textContent= stu;
+    tr.appendChild(studentTd);
 
     const timesTd= document.createElement('td');
     if(Array.isArray(arr)){
-      timesTd.innerHTML= arr.map((val,i)=>`Lap ${i+1}: ${val}`).join('<br/>');
+      timesTd.innerHTML= arr.map((val,i)=> `Lap ${i+1}: ${val}`).join('<br/>');
     } else {
       timesTd.textContent= arr;
     }
@@ -741,8 +749,7 @@ function renderManageTable(){
 
     // actions
     const actionsTd= document.createElement('td');
-
-    // Reassign => last lap
+    // reassign => last lap
     const reBtn= document.createElement('button');
     reBtn.textContent='Reassign';
     reBtn.classList.add('btn','btn-secondary');
@@ -753,7 +760,7 @@ function renderManageTable(){
     });
     actionsTd.appendChild(reBtn);
 
-    // Edit => last lap
+    // edit => last lap
     const edBtn= document.createElement('button');
     edBtn.textContent='Edit Time';
     edBtn.classList.add('btn','btn-primary');
@@ -765,7 +772,6 @@ function renderManageTable(){
     });
     actionsTd.appendChild(edBtn);
 
-    // finalTime
     if(rObj.finalTimes && rObj.finalTimes[stu]!==undefined){
       const finalVal= rObj.finalTimes[stu];
       const finalSpan= document.createElement('span');
@@ -781,6 +787,7 @@ function renderManageTable(){
     tBody.appendChild(tr);
   });
 }
+
 function doReassign(grp, rId, oldStu, lastVal){
   const newStu= prompt("Enter new student name:");
   if(!newStu) return;
@@ -792,19 +799,21 @@ function doReassign(grp, rId, oldStu, lastVal){
   });
 }
 function doEditTime(grp, rId, stu, oldVal){
+  // In a future version, you might let the user pick WHICH lap to edit
+  // For now, we only edit the last lap
   const newValStr= prompt(`New time (old: ${oldVal})`);
   if(!newValStr|| isNaN(parseFloat(newValStr))) return;
   const newVal= parseFloat(newValStr);
-  socket.emit('editTime',{ group:grp, studentName: stu, newTime: newVal});
+  socket.emit('editTime',{ group:grp, studentName:stu, newTime:newVal});
 }
 
-/********************************
+/***************************************
  * UTILS
- ********************************/
+ ***************************************/
 function showConfirmation(msg){
-  const el= document.getElementById('confirmationMsg');
-  el.textContent= msg;
-  setTimeout(()=> el.textContent='',3000);
+  const msgEl= document.getElementById('confirmationMsg');
+  msgEl.textContent= msg;
+  setTimeout(()=> { msgEl.textContent='';},3000);
 }
 function hasAnyRecordedTimes(){
   for(const grp of Object.keys(raceData)){
