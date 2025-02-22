@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Race Manager</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">Race Manager</div>
+    <div class="navbar-right">
+      <div class="timer-display" style="margin-left:80px;">
+        <span id="timeDisplayLowerPrimary" class="timer-badge">LowerPrimary Timer: 00:00:00.000</span>
+        <span id="timeDisplayMinis" class="timer-badge">Primary Timer: 00:00:00.000</span>
+        <span id="timeDisplayJunior" class="timer-badge">Secondary Timer: 00:00:00.000</span>
+        <span id="timeDisplaySenior" class="timer-badge">Senior Timer: 00:00:00.000</span>
+      </div>
+      <div id="latencyDisplay" style="position:absolute; top:5px; left:10px; font-weight:bold;">Latency: --</div>
+      <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+      <button id="switchRaceBtn" class="btn btn-secondary">Switch Race</button>
+    </div>
+  </nav>
+
+  <div class="actions-bar">
+    <div class="left-actions">
+      <button id="startRaceBtn" class="btn btn-primary" disabled>Start Race</button>
+      <button id="pauseRaceBtn" class="btn btn-warning" disabled>Pause Race</button>
+      <button id="endRaceBtn" class="btn btn-danger" disabled>End Race</button>
+      <button id="manageBtn" class="btn btn-secondary" disabled>Manage/Edit</button>
+      <button id="injureOneBtn" class="btn btn-dark">Injure Student</button>
+    </div>
+    <div class="search-container">
+      <input id="searchInput" class="search-input" type="text" placeholder="Search student..." />
+      <div id="searchResults" class="dropdown"></div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button id="lowerPrimaryTab" class="tab-button active">Primary</button>
+    <button id="minisTab" class="tab-button">Primary</button>
+    <button id="juniorTab" class="tab-button">Secondary</button>
+    <button id="seniorTab" class="tab-button">Senior</button>
+  </div>
+
+  <div class="main-container">
+    <div class="race-selection">
+      <h2 id="raceSelectionTitle"></h2>
+      <button id="createRaceBtn" class="btn btn-success">Create New Race</button>
+      <select id="raceListSelect"></select>
+      <button id="loadRaceBtn" class="btn btn-primary">Load Selected Race</button>
+    </div>
+
+    <div id="confirmationMsg" class="confirmation-msg"></div>
+    <div id="classContainer"></div>
+
+    <div id="manageSection" class="manage-section hidden">
+      <h2>Manage / Edit Registrations</h2>
+      <table id="registrationsTable">
+        <thead>
+          <tr>
+            <th>Group</th>
+            <th>Race</th>
+            <th>Student</th>
+            <th>Time (sec)</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Socket.io -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- The final app.js with debug logs -->
+  <script src="app.js"></script>
+</body>
+</html>

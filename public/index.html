@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Marathon Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(120deg, #f0f9ff, #cfeffd);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-container {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 6px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+      width: 350px;
+      max-width: 90%;
+    }
+    .login-container h1 {
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: inline-block;
+      margin-bottom: 0.3rem;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-right: 0.5rem;
+    }
+    .btn-primary {
+      background: #007bff;
+      color: #fff;
+    }
+    .btn-success {
+      background: #28a745;
+      color: #fff;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .separator {
+      text-align: center;
+      margin: 1rem 0;
+    }
+    .separator hr {
+      border: none;
+      border-top: 1px solid #ddd;
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>Please Log In</h1>
+    <div class="form-group">
+      <label for="adminUser">Admin Username</label>
+      <input type="text" id="adminUser" placeholder="Enter admin username" />
+    </div>
+    <div class="form-group">
+      <label for="adminPass">Admin Password</label>
+      <input type="password" id="adminPass" placeholder="Enter admin password" />
+    </div>
+    <button id="adminLoginBtn" class="btn btn-primary">Admin Login</button>
+
+    <div class="separator">
+      <hr />
+      <p>OR</p>
+      <hr />
+    </div>
+
+    <div class="form-group">
+      <label for="codeInput">Enter Code (for Time Registration Only)</label>
+      <input type="text" id="codeInput" placeholder="Enter code" />
+    </div>
+    <button id="codeLoginBtn" class="btn btn-success">Enter Code</button>
+  </div>
+
+  <script>
+    // Hard-coded credentials & code
+    const ADMIN_USER = "mat";
+    const ADMIN_PASS = "mat";
+    const VALID_CODE = "abcd-1234";
+
+    window.addEventListener("DOMContentLoaded", () => {
+      console.log("[index.html] DOMContentLoaded");
+      const role = localStorage.getItem('userRole');
+      if (role) {
+        console.log("[index.html] Already logged in => going to main.html");
+        window.location.href = "main.html";
+        return;
+      }
+
+      document.getElementById('adminLoginBtn').addEventListener('click', () => {
+        console.log("[index.html] Admin Login clicked");
+        doLoginAttempt();
+      });
+      document.getElementById('codeLoginBtn').addEventListener('click', () => {
+        console.log("[index.html] Code Login clicked");
+        doLoginAttempt();
+      });
+    });
+
+    function doLoginAttempt() {
+      // 1) Try admin first
+      const userVal = document.getElementById('adminUser').value.trim();
+      const passVal = document.getElementById('adminPass').value.trim();
+      console.log("[index.html] doLoginAttempt => user:", userVal, " pass:", passVal);
+
+      if (userVal === ADMIN_USER && passVal === ADMIN_PASS) {
+        console.log("[index.html] Admin success => main.html");
+        localStorage.setItem('userRole', 'admin');
+        localStorage.removeItem('userCode');
+        window.location.href = "main.html";
+        return;
+      }
+
+      // 2) If not admin, check code
+      const codeVal = document.getElementById('codeInput').value.trim();
+      console.log("[index.html] doLoginAttempt => codeVal:", codeVal);
+      if (codeVal === VALID_CODE) {
+        console.log("[index.html] Code success => main.html");
+        localStorage.setItem('userRole', 'code');
+        localStorage.setItem('userCode', codeVal);
+        window.location.href = "main.html";
+        return;
+      }
+
+      // 3) Both fail => alert
+      alert("Invalid admin credentials or code.");
+    }
+  </script>
+</body>
+</html>
