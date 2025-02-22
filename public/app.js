@@ -1,5 +1,14 @@
 /********************************************************
- * app.js *   here except removing the old local countdown).
+ * app.js
+ * 
+ * Changes:
+ * - We removed local setInterval for the countdown.
+ * - We rely on the server to handle the countdown; 
+ *   whenever raceData updates, we check if isCountingDown 
+ *   is true and display the countdown in the timers.
+ * - The concurrency bug is fixed by storing all race data 
+ *   in memory on the server side (no changes needed 
+ *   here except removing the old local countdown).
  ********************************************************/
 
 let socket;

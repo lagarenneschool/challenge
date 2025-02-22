@@ -112,10 +112,6 @@ body {
   margin: 0 auto;
   animation: fadeIn 0.4s ease;
 }
-@keyframes fadeIn {
-  from {opacity: 0;}
-  to   {opacity: 1;}
-}
 
 /* ---------------------
    RACE SELECTION
@@ -130,10 +126,6 @@ body {
   align-items: center;
   gap: 1rem;
   animation: fadeDown 0.4s ease;
-}
-@keyframes fadeDown {
-  0% { opacity: 0; transform: translateY(-10px);}
-  100% { opacity: 1; transform: translateY(0);}
 }
 .race-selection h2 {
   margin: 0;
@@ -197,11 +189,7 @@ body {
   transform: none !important;
 }
 
-/* FadeInUp animation for class blocks */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(15px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* FadeInUp animation for class blocks
 
 /* ---------------------
    BUTTON STYLES
