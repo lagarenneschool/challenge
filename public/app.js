@@ -1,14 +1,5 @@
 /********************************************************
- * app.js
- * 
- * Changes:
- * - We removed local setInterval for the countdown.
- * - We rely on the server to handle the countdown; 
- *   whenever raceData updates, we check if isCountingDown 
- *   is true and display the countdown in the timers.
- * - The concurrency bug is fixed by storing all race data 
- *   in memory on the server side (no changes needed 
- *   here except removing the old local countdown).
+ * app.js *   here except removing the old local countdown).
  ********************************************************/
 
 let socket;
@@ -393,77 +384,89 @@ function renderRaceSelectionUI(){
 /*******************************
  * CLASSES UI => 5-col grid
  *******************************/
-function renderClassesUI(){
-  const cEl= document.getElementById('classContainer');
-  cEl.innerHTML= '';
-  const gCfg= configData[currentGroup];
-  if(!gCfg){
-    cEl.textContent= 'No group data.';
-    return;
-  }
-  const cRId= raceData[currentGroup].currentRaceId;
-  if(!cRId){
-    cEl.textContent= 'No race selected.';
-    return;
-  }
-  const rO= raceData[currentGroup].races[cRId];
+function renderClassesUI() {
+  const cEl = document.getElementById('classContainer');
 
-  gCfg.classes.forEach(cls=>{
-    const clsDiv= document.createElement('div');
+  // Create an in-memory fragment to build out the new contents.
+  const frag = document.createDocumentFragment();
+
+  const gCfg = configData[currentGroup];
+  if (!gCfg) {
+    const div = document.createElement('div');
+    div.textContent = 'No group data.';
+    frag.appendChild(div);
+    // Replace the old container's children with the new fragment.
+    cEl.replaceChildren(frag);
+    return;
+  }
+
+  const cRId = raceData[currentGroup].currentRaceId;
+  if (!cRId) {
+    const div = document.createElement('div');
+    div.textContent = 'No race selected.';
+    frag.appendChild(div);
+    cEl.replaceChildren(frag);
+    return;
+  }
+
+  const rO = raceData[currentGroup].races[cRId];
+
+  gCfg.classes.forEach(cls => {
+    const clsDiv = document.createElement('div');
     clsDiv.classList.add('class-block');
 
-    const clsTitle= document.createElement('h4');
-    clsTitle.textContent= cls.name;
+    const clsTitle = document.createElement('h4');
+    clsTitle.textContent = cls.name;
     clsDiv.appendChild(clsTitle);
 
-    // grid
-    const grid= document.createElement('div');
-    grid.style.display='grid';
-    grid.style.gridTemplateColumns='repeat(5, 1fr)';
-    grid.style.gap='8px';
+    // Grid container
+    const grid = document.createElement('div');
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = 'repeat(5, 1fr)';
+    grid.style.gap = '8px';
 
-    cls.students.forEach(stu=>{
-      const cell= document.createElement('div');
-      cell.style.border='1px solid #ccc';
-      cell.style.padding='6px';
+    cls.students.forEach(stu => {
+      const cell = document.createElement('div');
+      cell.style.border = '1px solid #ccc';
+      cell.style.padding = '6px';
 
-      const nameLabel= document.createElement('div');
-      nameLabel.style.fontSize='0.85rem';
-      nameLabel.style.fontWeight='bold';
-      nameLabel.textContent= stu;
+      const nameLabel = document.createElement('div');
+      nameLabel.style.fontSize = '0.85rem';
+      nameLabel.style.fontWeight = 'bold';
+      nameLabel.textContent = stu;
       cell.appendChild(nameLabel);
 
-      const lapsArr= rO.recordedTimes[stu]||[];
-      let doneStr= lapsArr.includes('Injured')? 'Injured': `${lapsArr.length}/${rO.laps}`;
-      const lapsDiv= document.createElement('div');
-      lapsDiv.textContent= "Laps: " + doneStr;
-      lapsDiv.style.margin= '4px 0';
+      const lapsArr = rO.recordedTimes[stu] || [];
+      let doneStr = lapsArr.includes('Injured') ? 'Injured' : `${lapsArr.length}/${rO.laps}`;
+      const lapsDiv = document.createElement('div');
+      lapsDiv.textContent = 'Laps: ' + doneStr;
+      lapsDiv.style.margin = '4px 0';
       cell.appendChild(lapsDiv);
 
-      const row= document.createElement('div');
-      row.style.display='flex';
-      row.style.justifyContent='space-between';
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
 
-      // plus
-      const plusBtn= document.createElement('button');
-      plusBtn.textContent='+';
-      plusBtn.style.width='30px'; 
-      plusBtn.style.height='30px';
-      if(lapsArr.includes('Injured')|| lapsArr.length>= rO.laps){
-        plusBtn.disabled=true;
+      // PLUS button
+      const plusBtn = document.createElement('button');
+      plusBtn.textContent = '+';
+      plusBtn.style.width = '30px';
+      plusBtn.style.height = '30px';
+      if (lapsArr.includes('Injured') || lapsArr.length >= rO.laps) {
+        plusBtn.disabled = true;
       }
-      plusBtn.addEventListener('click',()=> handlePlusLap(stu));
+      plusBtn.addEventListener('click', () => handlePlusLap(stu));
       row.appendChild(plusBtn);
 
-      // minus
-      const minusBtn= document.createElement('button');
-      minusBtn.textContent='-';
-      minusBtn.style.width='30px'; 
-      minusBtn.style.height='30px';
-      if(!lapsArr.length|| lapsArr.includes('Injured')){
-        minusBtn.disabled=true;
+      // MINUS button
+      const minusBtn = document.createElement('button');
+      minusBtn.textContent = '-';
+      minusBtn.style.width = '30px';
+      minusBtn.style.height = '30px';
+      if (!lapsArr.length || lapsArr.includes('Injured')) {
+        minusBtn.disabled = true;
       }
-      minusBtn.addEventListener('click',()=> handleMinusLap(stu));
+      minusBtn.addEventListener('click', () => handleMinusLap(stu));
       row.appendChild(minusBtn);
 
       cell.appendChild(row);
@@ -471,9 +474,14 @@ function renderClassesUI(){
     });
 
     clsDiv.appendChild(grid);
-    cEl.appendChild(clsDiv);
+    frag.appendChild(clsDiv);
   });
+
+  // Finally, replace the children of #classContainer in one go
+  cEl.replaceChildren(frag);
 }
+
+
 function handlePlusLap(stu){
   const rObj= getRaceObj();
   if(!rObj||!rObj.isRunning){
