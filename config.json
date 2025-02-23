@@ -7,11 +7,11 @@
         },
         {
           "name": "Y1",
-          "students": ["Ella C.", "Aaron H.", "Chihiro N.", "Alexander P.", "Imogen P."]
+          "students": ["Ella C.", "Aaron H.", "Alexander P.", "Imogen P."]
         },
         {
           "name": "Y2",
-          "students": ["Dougal B.", "Aaron G.", "Conrad J.", "Leonardo Alexander W."]
+          "students": ["Dougal B.", "Aaron G.", "Leonardo Alexander W."]
         },
         {
           "name": "Y3",
@@ -31,7 +31,7 @@
         },
         {
           "name": "Y6",
-          "students": ["Lucian A.", "Lamara F.", "Benedict J.", "Maria-Luisa M.", "Paul M.", "Roman M.", "Kirara S.", "Jo T.", "Javier T.", "Lele X.", "Zhengyao (Ryan) Z."]
+          "students": ["Lucian A.", "Lamara F.", "Benedict J.", "Maria-Luisa M.", "Paul M.", "Roman M.", "Kirara S.", "Jo T.", "Javier T.", "Zhengyao (Ryan) Z."]
         }
       ]
     },
@@ -39,7 +39,7 @@
       "classes": [
         {
           "name": "M1",
-          "students": ["Anastasiia K.","Aileen H.", "He H.", "Jade H.","Jiyeon L.","Maiia T.","Masashi H."]
+          "students": ["Aileen H.", "Jade H.","Jiyeon L.","Maiia T.","Masashi H.", "Maksim P."]
         },
         {
           "name": "M2",
@@ -55,11 +55,11 @@
       "classes": [
         {
           "name": "M4",
-          "students": ["Angela", "Eddy C.", "Esora S.", "Gabriel F.", "Giacomo V.", "Hiroaki K.", "Iakov S.", "Ivan K.", "Ivanna S.", "Jana P.", "Kosaku N.", "Louis-Hadrien P.", "Manuel B.", "Margot D.", "Marc B.", "Miguel Angel G.", "Pinchas A.", "Santiago G.", "Sven M.", "Tomas W.", "Veronika S.", "Zihan (Angela) S."]
+          "students": ["Angela", "Eddy C.", "Gabriel F.", "Giacomo V.", "Hiroaki K.", "Iakov S.", "Ivanna S.", "Jana P.", "Kosaku N.", "Louis-Hadrien P.", "Manuel B.", "Margot D.", "Marc B.", "Miguel Angel G.", "Pinchas A.", "Santiago G.", "Sven M.", "Tomas W.", "Veronika S.", "Zihan (Angela) S."]
         },
         {
           "name": "M5",
-          "students": ["Alevtina K.", "Arav S.", "Chingyi (Jenell) S.","Demian I.", "Fahd B.", "Luciana M.", "Maria S.","Mariia K.", "Mariia P.","Michael C.", "Nene S.", "Nikola D.", "Oscar Wentao L.", "Philip Emmanuel P.", "Pol M.", "Sergey B.", "Takuto H.", "Thanh L.", "William H."]
+          "students": ["Alevtina K.","Antoniy G.", "Arav S.", "Chingyi (Jenell) S.","Demian I.", "Fahd B.", "Luciana M.", "Maria S.","Mariia K.", "Mariia P.","Michael C.", "Nene S.", "Nikola D.", "Oscar Wentao L.", "Philip Emmanuel P.", "Pol M.", "Sergey B.", "Takuto H.", "Thanh L.", "William H."]
         },
         {
           "name": "DP1",
