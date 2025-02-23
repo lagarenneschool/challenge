@@ -3,27 +3,35 @@
       "classes": [
         {
           "name": "Rec",
-          "students": ["Alexander P.", "Rémi S.", "Olive H.", "Charlie J.", "Tommy J."]
+          "students": ["Charisma C.", "Liam C.", "Olive H.", "Charlie J.", "Tommy J.", "Liam O."]
         },
         {
           "name": "Y1",
-          "students": ["Conrad J.", "Imogen P.", "Leonardo W.", "Aaron H.", "Jason G."]
+          "students": ["Ella C.", "Aaron H.", "Chihiro N.", "Alexander P.", "Imogen P."]
         },
         {
           "name": "Y2",
-          "students": ["Liam O."]
+          "students": ["Dougal B.", "Aaron G.", "Conrad J.", "Leonardo Alexander W."]
+        },
+        {
+          "name": "Y3",
+          "students": ["Jason G.", "Keach I.", "Rémi S.", "Xien (Linda) Z."]
         }
       ]
     },
     "minis": {
       "classes": [
         {
-          "name": "DP1",
-          "students": ["John", "Karen", "Lily"]
+          "name": "Y4",
+          "students": ["Stephaniia I.", "Yumo (Stella) L.", "Aurelia Harmony P.", "Elizaveta (Liza) P.", "Ryo S.", "Kei T.", "Bai Mei W.", "Bai Ting W.", "Jinqiu (Jasper) Z."]
         },
         {
-          "name": "DP2",
-          "students": ["John", "Karen", "Lily"]
+          "name": "Y5",
+          "students": ["Paulo B.", "Qi Li (Amanda) C.", "Jiangxin (Oscar) D.", "Roushan F.", "Yuxuan (Samuel) L.", "Nayuta S.", "Ismael S.", "Munan W."]
+        },
+        {
+          "name": "Y6",
+          "students": ["Lucian A.", "Lamara F.", "Benedict J.", "Maria-Luisa M.", "Paul M.", "Roman M.", "Kirara S.", "Jo T.", "Javier T.", "Lele X.", "Zhengyao (Ryan) Z."]
         }
       ]
     },
