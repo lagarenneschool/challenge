@@ -431,16 +431,16 @@ function renderClassesUI() {
     // Grid container
     const grid = document.createElement('div');
     grid.style.display = 'grid';
-    grid.style.gridTemplateColumns = 'repeat(5, 1fr)';
-    grid.style.gap = '8px';
+    grid.style.gridTemplateColumns = 'repeat(5, minmax(100px, 1fr))';
+    grid.style.gap = '4px';
 
     cls.students.forEach(stu => {
       const cell = document.createElement('div');
       cell.style.border = '1px solid #ccc';
-      cell.style.padding = '6px';
+      cell.style.padding = '4px';
 
       const nameLabel = document.createElement('div');
-      nameLabel.style.fontSize = '0.85rem';
+      nameLabel.style.fontSize = '0.8rem';
       nameLabel.style.fontWeight = 'bold';
       nameLabel.textContent = stu;
       cell.appendChild(nameLabel);
@@ -459,8 +459,8 @@ function renderClassesUI() {
       // PLUS button
       const plusBtn = document.createElement('button');
       plusBtn.textContent = '+';
-      plusBtn.style.width = '30px';
-      plusBtn.style.height = '30px';
+      plusBtn.style.width = '24px';
+      plusBtn.style.height = '24px';
       if (lapsArr.includes('Injured') || lapsArr.length >= rO.laps) {
         plusBtn.disabled = true;
       }
@@ -470,8 +470,8 @@ function renderClassesUI() {
       // MINUS button
       const minusBtn = document.createElement('button');
       minusBtn.textContent = '-';
-      minusBtn.style.width = '30px';
-      minusBtn.style.height = '30px';
+      minusBtn.style.width = '24px';
+      minusBtn.style.height = '24px';
       if (!lapsArr.length || lapsArr.includes('Injured')) {
         minusBtn.disabled = true;
       }
