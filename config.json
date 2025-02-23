@@ -39,15 +39,15 @@
       "classes": [
         {
           "name": "M1",
-          "students": ["Anastasiia K.","Aileen H.", "He H.", "Jade H.","Jiyeon L.","Leo B.","Maiia T.","Masashi H."]
+          "students": ["Anastasiia K.","Aileen H.", "He H.", "Jade H.","Jiyeon L.","Maiia T.","Masashi H."]
         },
         {
           "name": "M2",
-          "students": ["Amani S.", "Benjamin R.","Chloe B.", "Daniel D.","Ella M.","Gabriel R.","Hognshen (Nelson) N.","Hugo S.","Hugo De Lucas F.","Kokone K.", "Lisa D.","Matvei L.", "Nana S.", "Oluwatoni (Toni) A.", "Oscar J.", "Peter K.", "Vera B.","Qinyi (Carmen) Z."]
+          "students": ["Anna-Kate C.", "Benjamin R.","Chloe B.", "Daniel D.","Ella M.","Gabriel R.","Hognshen (Nelson) N.","Hugo S.","Hugo De Lucas F.","Kokone K.", "Lisa D.","Matvei L.", "Oluwatoni (Toni) A.", "Oscar J.", "Peter K.", "Vera B.","Qinyi (Carmen) Z."]
         },
         {
           "name": "M3",
-          "students": ["Angela X.", "Anna-Kate C.", "Boruch C.","Boris B.","Ellena E.","Gleb S.","Liam D.","Lily W.","Marat G.", "Matteo D.","Meika M.", "Penny H.", "Sophia E.","Timur D.","Valeriia S."]
+          "students": ["Amani S.", "Angela X.", "Boruch C.","Boris B.","Ellena E.","Gleb S.","Liam D.","Lily W.","Marat G.", "Matteo D.","Meika M.", "Penny H.", "Sophia E.","Timur D.","Valeriia S."]
         }
       ]
     },
@@ -59,15 +59,15 @@
         },
         {
           "name": "M5",
-          "students": ["Alevtina K.", "Alexander V.", "Arav S.", "Chingyi (Jenell) S.", "Delilah C.", "Demian I.", "Fahd B.", "Jason C.", "Luciana M.", "Lou Salomè P.", "Maria S.","Mariia K.", "Mariia P.","Michael C.", "Nene S.", "Nikola D.", "Oscar Wentao L.", "Pavelina A.", "Philip Emmanuel P.", "Pol M.", "Sergey B.", "Takuto H.", "Thanh L.", "Valentina H.", "William H."]
+          "students": ["Alevtina K.", "Arav S.", "Chingyi (Jenell) S.","Demian I.", "Fahd B.", "Luciana M.", "Maria S.","Mariia K.", "Mariia P.","Michael C.", "Nene S.", "Nikola D.", "Oscar Wentao L.", "Philip Emmanuel P.", "Pol M.", "Sergey B.", "Takuto H.", "Thanh L.", "William H."]
         },
         {
           "name": "DP1",
-          "students": ["Ajsel B.", "Alex X.", "Cevy Alan Christopher O.", "Daria N.", "David I.", "Francisco D.", "Isadora G.", "Jack M.","Jimena G.", "Jittjormkwam (Jitt) C.", "Louis U.", "Maki O.", "Nikita S.", "Renzo R.", "Samira D.", "Sofiya B.", "Shoei T.", "Vladimir L.", "Yucheng (Justin) Z."]
+          "students": ["Alex X.", "Cevy Alan Christopher O.", "Daria N.", "David I.", "Francisco D.", "Isadora G.", "Jack M.","Jimena G.", "Jittjormkwam (Jitt) C.", "Maki O.", "Samira D.", "Sofiya B.", "Shoei T.", "Yucheng (Justin) Z."]
         },
         {
           "name": "DP2",
-          "students": ["Aleksandra V.", "Andrey S.", "Elizaveta K.", "Grigory (Grisha) D.", "Hristo-Konstantin D.", "Kaloyan I.", "Kristina K.", "Matteo S.", "Rino Y.", "Saaniya B.", "Selim G.", "Sofia V."]
+          "students": ["Aleksandra V.", "Andrey S.", "Elizaveta K.", "Grigory (Grisha) D.", "Hristo-Konstantin D.", "Kaloyan I.", "Matteo S.", "Rino Y.", "Saaniya B.", "Selim G.", "Sofia V."]
         }
       ]
     }
